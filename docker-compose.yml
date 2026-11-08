@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: triage_postgres
+    environment:
+      POSTGRES_DB: triage_db
+      POSTGRES_USER: triage_user
+      POSTGRES_PASSWORD: triage_password
+    ports:
+      # Puerto 5433 en tu PC para no chocar con otro Postgres (por ejemplo el del proyecto de clase)
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Opcional: pgAdmin para ver las tablas desde el navegador (http://localhost:5050)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: triage_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@triage.com
+      PGADMIN_DEFAULT_PASSWORD: admin_password
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  pgadmin_data:
