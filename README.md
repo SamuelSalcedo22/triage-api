@@ -21,7 +21,46 @@ Recomendado: VS Code y la extensión *Thunder Client* o Postman (opcional, tambi
 
 ---
 
-## 2. Cómo correr la API paso a paso
+## Arranque rápido: un solo comando
+
+Con Docker Desktop abierto y las dependencias instaladas (`npm install`, solo la primera vez):
+
+```bash
+npm run levantar
+```
+
+Crea el `.env` si falta, enciende PostgreSQL, espera a que esté listo y arranca la API.
+Cuando aparezca `Swagger disponible en http://localhost:3000/api/docs` el sistema está arriba.
+
+Alternativa sin instalar Node (todo dentro de Docker): `npm run levantar:docker`,
+que equivale a `docker compose --profile completo up --build`.
+
+Demostración guiada de punta a punta (con la API ya corriendo, en otra ventana de PowerShell):
+
+```bash
+npm run demo
+```
+
+## Pruebas
+
+| Comando | Qué verifica | Necesita |
+|---|---|---|
+| `npm run test:unit` | Reglas clínicas: NEWS2, hipertensión, diabetes, síntomas (12 pruebas) | Nada |
+| `npm run test:arq` | Arquitectura: capas separadas, dependencias en una dirección, sin atajos (7 pruebas) | Nada |
+| `npm run test:e2e` | Esqueleto de punta a punta contra PostgreSQL real (27 pruebas) | Postgres encendido |
+| `npm run test:carga` | Rendimiento con carga normal (1x) y con diez veces más (10x) | Postgres encendido |
+| `npm run test:disponibilidad` | Caída de la base de datos: detección y recuperación automática | Postgres encendido |
+| `npm run test:todo` | Ejecuta todas las anteriores y genera `evidencias/REPORTE.md` | Postgres encendido |
+
+Las pruebas e2e, de carga y de disponibilidad usan bases de datos propias (`triage_e2e`, `triage_carga`,
+`triage_disponibilidad`), así que no tocan los datos de desarrollo. La de disponibilidad apaga el
+contenedor de PostgreSQL unos segundos y lo vuelve a encender.
+
+El último resultado completo está en [evidencias/REPORTE.md](evidencias/REPORTE.md).
+
+---
+
+## 2. Cómo correr la API paso a paso (manual)
 
 ### Paso 1 – Instalar dependencias
 
