@@ -6,7 +6,7 @@ export default defineConfig({
   test: {
     globals: true,
     root: './',
-    include: ['src/**/*.spec.ts'],
+    include: ['src/**/*.spec.ts', 'test/arquitectura/**/*.spec.ts'],
   },
   plugins: [swc.vite({ module: { type: 'es6' } })],
 });
