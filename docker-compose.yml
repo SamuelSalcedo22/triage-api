@@ -11,6 +11,12 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    # Docker sabe cuándo la base de datos ya acepta conexiones
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U triage_user -d triage_db"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
 
   # Opcional: pgAdmin para ver las tablas desde el navegador (http://localhost:5050)
   pgadmin:
@@ -27,6 +33,31 @@ services:
     depends_on:
       - postgres
 
+  # La API dentro de Docker. Solo se levanta con el perfil "completo":
+  #   docker compose --profile completo up --build
+  api:
+    profiles: ["completo"]
+    build: .
+    container_name: triage_api
+    environment:
+      PORT: 3000
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: triage_db
+      POSTGRES_USER: triage_user
+      POSTGRES_PASSWORD: triage_password
+      UPLOADS_DIR: uploads
+      MAX_UPLOAD_MB: 10
+      CORS_ORIGIN: "*"
+    ports:
+      - "3000:3000"
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   pgadmin_data:
+  uploads_data:
