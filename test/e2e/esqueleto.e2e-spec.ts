@@ -252,4 +252,23 @@ describe('Esqueleto de punta a punta', () => {
       expect(Buffer.compare(res.body as Buffer, pdf)).toBe(0);
     });
   });
+
+  // ------------------------------------------------------------------
+  describe('10. Concurrencia: dos especialistas toman el mismo caso al mismo tiempo', () => {
+    it('en 10 casos, cada uno queda asignado exactamente a UN especialista (200 + 409)', async () => {
+      for (let i = 0; i < 10; i++) {
+        const nuevo = await crearCaso({}, 'Control rutinario').expect(201);
+        const id = nuevo.body.data.case.id;
+        // Las dos peticiones salen en paralelo, sin esperar una a la otra
+        const [a, b] = await Promise.all([
+          http.patch(`/api/v1/cases/${id}/assign`).send({ specialistId: especialistaA }),
+          http.patch(`/api/v1/cases/${id}/assign`).send({ specialistId: especialistaB }),
+        ]);
+        expect([a.status, b.status].sort()).toEqual([200, 409]);
+        const detalle = await http.get(`/api/v1/cases/${id}`).expect(200);
+        const ganador = a.status === 200 ? especialistaA : especialistaB;
+        expect(detalle.body.data.assignedTo.id).toBe(ganador);
+      }
+    });
+  });
 });
