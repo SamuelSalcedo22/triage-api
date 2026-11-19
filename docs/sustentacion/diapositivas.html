@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Triage Clínico · Sustentación</title>
+<style>
+:root{
+  --bg:#0b1220; --panel:#121b2e; --panel2:#18233a; --line:#26344f;
+  --tx:#e7edf7; --mut:#93a3bd; --acc:#2dd4bf; --acc2:#60a5fa;
+  --alta:#f43f5e; --media:#f59e0b; --baja:#22c55e;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#05080f;color:var(--tx);font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform-origin:center center}
+.slide{position:absolute;inset:0;padding:56px 72px 64px;background:
+  radial-gradient(1200px 500px at 110% -10%,rgba(45,212,191,.10),transparent 60%),
+  radial-gradient(900px 500px at -10% 110%,rgba(96,165,250,.10),transparent 60%),var(--bg);
+  opacity:0;pointer-events:none;transition:opacity .35s ease,transform .35s ease;transform:translateX(24px);display:flex;flex-direction:column}
+.slide.on{opacity:1;pointer-events:auto;transform:none}
+.kick{font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:var(--acc);font-weight:700;margin-bottom:10px}
+h1{font-size:60px;line-height:1.05;font-weight:800;letter-spacing:-.02em}
+h2{font-size:38px;line-height:1.1;font-weight:800;letter-spacing:-.01em;margin-bottom:22px}
+h3{font-size:19px;font-weight:700;margin-bottom:8px}
+p,li{font-size:19px;line-height:1.45;color:var(--tx)}
+.mut{color:var(--mut)}
+.grad{background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.row{display:flex;gap:20px}
+.col{flex:1;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px 22px}
+.card.hl{border-color:rgba(45,212,191,.55);box-shadow:0 0 0 1px rgba(45,212,191,.15),0 10px 30px rgba(0,0,0,.35)}
+ul.clean{list-style:none}
+ul.clean li{padding:5px 0 5px 22px;position:relative;font-size:17px}
+ul.clean li:before{content:"";position:absolute;left:4px;top:14px;width:7px;height:7px;border-radius:50%;background:var(--acc)}
+.pill{display:inline-block;font-size:13px;font-weight:700;padding:3px 10px;border-radius:999px;letter-spacing:.04em}
+.p-alta{background:rgba(244,63,94,.16);color:#fb7185;border:1px solid rgba(244,63,94,.4)}
+.p-media{background:rgba(245,158,11,.14);color:#fbbf24;border:1px solid rgba(245,158,11,.4)}
+.p-baja{background:rgba(34,197,94,.14);color:#4ade80;border:1px solid rgba(34,197,94,.4)}
+.p-acc{background:rgba(45,212,191,.12);color:var(--acc);border:1px solid rgba(45,212,191,.4)}
+.p-mut{background:rgba(147,163,189,.12);color:var(--mut);border:1px solid rgba(147,163,189,.3)}
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:15.5px}
+th{text-align:left;color:var(--mut);font-weight:600;font-size:13px;letter-spacing:.06em;text-transform:uppercase;padding:9px 12px;border-bottom:1px solid var(--line)}
+td{padding:10px 12px;border-bottom:1px solid rgba(38,52,79,.6);vertical-align:top;line-height:1.35}
+tr:last-child td{border-bottom:none}
+.big{font-size:44px;font-weight:800;letter-spacing:-.02em}
+.mono{font-family:Consolas,"Cascadia Code",monospace}
+code,.code{font-family:Consolas,"Cascadia Code",monospace;font-size:15px;background:#0a1020;border:1px solid var(--line);border-radius:8px;padding:2px 7px;color:#a5f3fc}
+pre.code{display:block;padding:14px 16px;line-height:1.6;white-space:pre;color:#cbd5e1}
+.foot{position:absolute;left:72px;right:72px;bottom:22px;display:flex;justify-content:space-between;color:#5d6d88;font-size:13px}
+/* árbol */
+.tree{font-size:15.5px;line-height:1.5}
+.tree .n{display:flex;align-items:center;gap:10px;padding:5px 0}
+.tree .attr{font-weight:700;color:var(--acc2);margin-top:6px}
+.tree .leaf{padding-left:26px;border-left:2px solid var(--line);margin-left:8px}
+.tag{font-family:Consolas,monospace;font-weight:700;font-size:13px;padding:2px 8px;border-radius:6px;white-space:nowrap}
+.AA{background:#7f1d1d;color:#fecaca}.AM{background:#9a3412;color:#fed7aa}.AB{background:#854d0e;color:#fef08a}
+.MA{background:#1e3a8a;color:#bfdbfe}.MM{background:#1e3a5f;color:#bae6fd}.MB{background:#1f2937;color:#d1d5db}.BA{background:#312e81;color:#c7d2fe}
+.star{color:#fbbf24;font-weight:800}
+/* capas */
+.layer{border-radius:14px;padding:16px 20px;border:1px solid var(--line);background:var(--panel2);display:flex;justify-content:space-between;align-items:center}
+.arrow-d{text-align:center;color:var(--acc);font-size:22px;line-height:1;margin:6px 0}
+/* C4 */
+.c4{position:relative;width:100%;height:100%}
+.box{position:absolute;border-radius:12px;padding:12px 14px;text-align:center;font-size:14px;line-height:1.3;color:#fff}
+.box b{display:block;font-size:16px;margin-bottom:2px}
+.box i{display:block;font-size:12px;opacity:.85;margin-bottom:4px}
+.per{background:#08427b;border:1px solid #2a6bb0;border-radius:40px}
+.sys{background:#1168bd;border:1px solid #4d97e0}
+.ext{background:#5b6475;border:1px dashed #9aa3b3}
+.db{border-radius:12px 12px 40px 40px/12px 12px 22px 22px}
+.bound{position:absolute;border:2px dashed #4d97e0;border-radius:18px}
+.bound span{position:absolute;top:-12px;left:18px;background:var(--bg);padding:0 8px;color:#7fb2ea;font-size:13px;font-weight:700}
+svg.wires{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+svg.wires text{fill:#cbd5e1;font-size:12px;font-family:"Segoe UI",system-ui,sans-serif}
+.legend{display:flex;gap:16px;font-size:12.5px;color:var(--mut);align-items:center;flex-wrap:wrap}
+.legend span.sw{display:inline-block;width:16px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+/* barras */
+.bar{height:26px;border-radius:7px;display:flex;align-items:center;padding-left:10px;font-size:13px;font-weight:700;color:#0b1220}
+/* nav */
+#nav{position:fixed;bottom:14px;right:18px;display:flex;gap:8px;z-index:5;opacity:.25;transition:opacity .2s}
+#nav:hover{opacity:1}
+#nav button{background:#152038;color:#cbd5e1;border:1px solid #2b3a58;border-radius:10px;width:38px;height:34px;font-size:16px;cursor:pointer}
+#prog{position:fixed;left:0;top:0;height:3px;background:linear-gradient(90deg,var(--acc),var(--acc2));z-index:6;transition:width .3s}
+.hint{position:fixed;bottom:16px;left:18px;color:#3f4d66;font-size:12px}
+</style>
+</head>
+<body>
+<div id="prog"></div>
+<div id="stage">
+
+<!-- 1 · Portada -->
+<section class="slide">
+  <div style="margin-top:70px">
+    <div class="kick">Arquitectura de Software · Proyecto integrador · UCC Pasto</div>
+    <h1>Triage y priorización<br><span class="grad">de casos clínicos</span></h1>
+    <p class="mut" style="font-size:22px;margin-top:22px;max-width:820px">Del promotor en la vereda a la bandeja del especialista: una API que decide <b style="color:var(--tx)">qué paciente se mira primero</b>, y por qué.</p>
+  </div>
+  <div class="row" style="margin-top:auto;align-items:flex-end">
+    <div class="col">
+      <p class="mut" style="font-size:16px">Integrantes</p>
+      <p style="font-size:20px">______________ · ______________ · ______________</p>
+    </div>
+    <div style="display:flex;gap:10px">
+      <span class="pill p-alta">ALTA</span><span class="pill p-media">MEDIA</span><span class="pill p-baja">BAJA</span>
+    </div>
+  </div>
+  <div class="foot"><span>NestJS 12 · TypeORM · PostgreSQL 16 · Docker</span><span>Momento evaluativo 3</span></div>
+</section>
+
+<!-- 2 · Dominio -->
+<section class="slide">
+  <div class="kick">1 · El dominio</div>
+  <h2>Telexperticia asíncrona en la zona rural de Pasto</h2>
+  <div class="row" style="align-items:stretch;gap:16px;margin-top:10px">
+    <div class="card col"><div class="big" style="color:var(--acc)">①</div><h3>Promotor en campo</h3><p class="mut" style="font-size:16px">Visita veredas y corregimientos y toma PA, SpO₂, glucometría, temperatura, frecuencia respiratoria, frecuencia cardiaca y nivel de conciencia, además de los síntomas en texto libre.</p></div>
+    <div style="align-self:center;font-size:30px;color:var(--acc)">→</div>
+    <div class="card col hl"><div class="big" style="color:var(--acc2)">②</div><h3>API de triage</h3><p class="mut" style="font-size:16px">Calcula <b style="color:var(--tx)">NEWS2</b> y reglas de <b style="color:var(--tx)">hipertensión</b> y <b style="color:var(--tx)">diabetes</b>, detecta síntomas de alarma y asigna una prioridad.</p></div>
+    <div style="align-self:center;font-size:30px;color:var(--acc)">→</div>
+    <div class="card col"><div class="big" style="color:#fbbf24">③</div><h3>Especialista urbano</h3><p class="mut" style="font-size:16px">Recibe decenas de casos al día en una <b style="color:var(--tx)">cola compartida</b> ordenada ALTA → MEDIA → BAJA. Toma el caso y registra la conducta.</p></div>
+  </div>
+  <div class="card" style="margin-top:22px;display:flex;gap:16px;align-items:center">
+    <span class="pill p-alta">El error más caro</span>
+    <p style="font-size:18px">Un paciente con una crisis hipertensiva queda <b>enterrado como BAJA</b> mientras el médico revisa controles de rutina.</p>
+  </div>
+  <div class="foot"><span>Triage clínico</span><span>2</span></div>
+</section>
+
+<!-- 3 · Complejidad -->
+<section class="slide">
+  <div class="kick">1 · ¿Por qué no es un CRUD?</div>
+  <h2>Tres fuentes de complejidad real</h2>
+  <div class="row" style="gap:18px">
+    <div class="card col"><span class="pill p-acc">Reglas de negocio</span>
+      <ul class="clean" style="margin-top:12px">
+        <li>NEWS2: 7 parámetros, 2 escalas de SpO₂</li>
+        <li>"Parámetro en rojo" (un solo 3 → MEDIA)</li>
+        <li>HTA grado 3 ± daño de órgano blanco</li>
+        <li>Hipoglucemia de nivel 1, 2 y 3</li>
+        <li>Síntomas en texto libre con negación ("niega dolor de pecho")</li>
+        <li>La prioridad final es la <b>más grave</b> de todas</li>
+        <li>Máquina de estados del caso</li>
+      </ul></div>
+    <div class="card col"><span class="pill p-acc">Tres tipos de usuario</span>
+      <ul class="clean" style="margin-top:12px">
+        <li><b>Promotor</b>: registra y necesita la prioridad <i>al instante</i></li>
+        <li><b>Especialista</b>: consume una cola <i>compartida</i>, toma y libera casos</li>
+        <li><b>Administrador</b>: gestiona y desactiva usuarios</li>
+      </ul></div>
+    <div class="card col"><span class="pill p-acc">Restricciones externas</span>
+      <ul class="clean" style="margin-top:12px">
+        <li><b>Res. 2654/2019</b> (telesalud): el sistema <i>sugiere</i>, el médico decide</li>
+        <li><b>Ley 1581/2012</b>: los datos de salud son sensibles</li>
+        <li><b>Res. 1995/1999</b>: integridad de la historia clínica</li>
+        <li><b>NEWS2</b> (RCP 2017) como estándar externo</li>
+        <li>Conectividad intermitente en Nariño</li>
+      </ul></div>
+  </div>
+  <div class="foot"><span>Triage clínico</span><span>3</span></div>
+</section>
+
+<!-- 4 · Árbol de utilidad -->
+<section class="slide">
+  <div class="kick">2 · Drivers priorizados</div>
+  <h2 style="margin-bottom:14px">Árbol de utilidad <span class="mut" style="font-size:20px;font-weight:500">(importancia, dificultad)</span></h2>
+  <div class="row" style="gap:26px">
+    <div class="col tree">
+      <div class="attr">Corrección clínica</div>
+      <div class="leaf"><div class="n"><span class="tag AM">A,M</span><span class="star">★</span> E1 · PA ≥180/110 + cefalea → ALTA y primero en la cola</div>
+      <div class="n"><span class="tag AB">A,B</span> Toda regla tiene prueba en su frontera</div></div>
+      <div class="attr">Integridad ante concurrencia</div>
+      <div class="leaf"><div class="n"><span class="tag AM">A,M</span><span class="star">★</span> E2 · Dos especialistas a la vez → solo uno lo toma</div></div>
+      <div class="attr">Modificabilidad</div>
+      <div class="leaf"><div class="n"><span class="tag AB">A,B</span><span class="star">★</span> E3 · Cambiar un umbral toca un archivo</div>
+      <div class="n"><span class="tag BA">B,A</span> Cambiar umbrales sin redesplegar</div></div>
+    </div>
+    <div class="col tree">
+      <div class="attr">Rendimiento</div>
+      <div class="leaf"><div class="n"><span class="tag MB">M,B</span> E4 · Cola con 100 casos: p99 &lt; 500 ms</div>
+      <div class="n"><span class="tag MA">M,A</span> Cola con 1000 casos (10x)</div></div>
+      <div class="attr">Disponibilidad</div>
+      <div class="leaf"><div class="n"><span class="tag MM">M,M</span> E5 · Cae la BD → la API sigue viva</div></div>
+      <div class="attr">Seguridad / privacidad</div>
+      <div class="leaf"><div class="n"><span class="tag AB">A,B</span> E6 · Adjunto no permitido no toca el disco</div>
+      <div class="n"><span class="tag AA">A,A</span> Autenticación por rol <span class="pill p-alta" style="font-size:11px">riesgo R3</span></div></div>
+      <div class="attr">Operación en campo</div>
+      <div class="leaf"><div class="n"><span class="tag MA">M,A</span> Registro sin conexión <span class="pill p-mut" style="font-size:11px">fuera de alcance</span></div></div>
+    </div>
+  </div>
+  <p class="mut" style="font-size:15px;margin-top:auto">★ Las hojas que definieron el estilo. Las (·,A) no resueltas quedan como <b style="color:var(--tx)">deuda consciente</b>, no escondidas.</p>
+  <div class="foot"><span>Triage clínico</span><span>4</span></div>
+</section>
+
+<!-- 5 · Restricciones → efecto -->
+<section class="slide">
+  <div class="kick">2 · Restricciones</div>
+  <h2>Cada restricción deja una marca en el diseño</h2>
+  <table class="card" style="padding:6px 8px">
+    <tr><th style="width:34%">Restricción</th><th>Efecto en el diseño</th></tr>
+    <tr><td><b>Res. 2654/2019</b> · telesalud</td><td>El sistema <b>sugiere</b> la prioridad. <code>specialistNotes</code> es obligatorio para marcar ATENDIDO o DERIVADO</td></tr>
+    <tr><td><b>Ley 1581/2012</b> · datos sensibles</td><td>Lista blanca de tipos de archivo y nombres en disco con UUID. La falta de autenticación queda como riesgo R3</td></tr>
+    <tr><td><b>Res. 1995/1999</b> · historia clínica</td><td>El historial de triage es <b>inmutable</b>: cada evaluación es un registro nuevo</td></tr>
+    <tr><td><b>NEWS2</b> · estándar externo</td><td>Tablas implementadas tal cual, con pruebas en los valores de frontera</td></tr>
+    <tr><td>Conectividad rural</td><td>El cálculo no depende de la BD: <code>/triage/evaluate</code> responde con la BD caída</td></tr>
+    <tr><td>3 personas · 3 semanas · NestJS</td><td>Un solo despliegue que arranca con <b>un comando</b></td></tr>
+  </table>
+  <div class="foot"><span>Triage clínico</span><span>5</span></div>
+</section>
+
+<!-- 6 · Escenarios -->
+<section class="slide">
+  <div class="kick">3 · Escenarios con entorno y medida</div>
+  <h2>Los tres escenarios que mandan</h2>
+  <div class="row" style="gap:16px">
+    <div class="card col hl"><span class="pill p-alta">E1 · Corrección</span>
+      <p style="font-size:15px;margin-top:12px"><b>Fuente:</b> promotor · <b>Estímulo:</b> PA 192/112, "dolor de cabeza intenso, visión borrosa, <i>niega</i> dolor de pecho" · <b>Entorno:</b> normal</p>
+      <p style="font-size:15px;margin-top:8px"><b>Respuesta:</b> ALTA (<code>HTA_EMERGENCIA</code>), sin falsa alerta torácica, primero en la cola</p>
+      <div style="margin-top:14px"><div class="big" style="font-size:34px;color:var(--acc)">231 ms</div><p class="mut" style="font-size:14px">p99 del registro con prioridad incluida · 40 pruebas pasan</p></div></div>
+    <div class="card col hl"><span class="pill p-media">E2 · Concurrencia</span>
+      <p style="font-size:15px;margin-top:12px"><b>Fuente:</b> dos especialistas · <b>Estímulo:</b> <code>assign</code> al mismo caso <i>en paralelo</i> · <b>Entorno:</b> normal</p>
+      <p style="font-size:15px;margin-top:8px"><b>Respuesta:</b> uno recibe 200 y el otro <b>409</b></p>
+      <div style="margin-top:14px"><div class="big" style="font-size:34px;color:var(--acc)">0 / 10</div><p class="mut" style="font-size:14px">dobles asignaciones. El código anterior daba <code>[200, 200]</code></p></div></div>
+    <div class="card col hl"><span class="pill p-baja">E3 · Modificabilidad</span>
+      <p style="font-size:15px;margin-top:12px"><b>Fuente:</b> médico asesor · <b>Estímulo:</b> PAD de crisis 110 → 120 · <b>Entorno:</b> desarrollo</p>
+      <p style="font-size:15px;margin-top:8px"><b>Respuesta:</b> se cambia <code>applyHypertensionRules</code> y su prueba</p>
+      <div style="margin-top:14px"><div class="big" style="font-size:34px;color:var(--acc)">1 archivo</div><p class="mut" style="font-size:14px">de producción, en menos de 1 h. Garantizado por las reglas R9/R10</p></div></div>
+  </div>
+  <p class="mut" style="font-size:15px;margin-top:16px">Además: E4 cola p99 <b style="color:var(--tx)">177 ms</b> (límite 500) · E5 BD caída detectada en <b style="color:var(--tx)">15 ms</b>, recuperada en <b style="color:var(--tx)">607 ms</b> · E6 0 archivos huérfanos</p>
+  <div class="foot"><span>Triage clínico · medidas reales: npm run test:todo</span><span>6</span></div>
+</section>
+
+<!-- 7 · Estilo -->
+<section class="slide">
+  <div class="kick">4 · Estilo elegido</div>
+  <h2>Monolito modular <span class="grad">en capas</span></h2>
+  <div class="row" style="gap:30px;align-items:flex-start">
+    <div style="width:470px">
+      <div class="layer"><div><b>Controller</b><div class="mut" style="font-size:14px">HTTP ↔ DTO · no conoce la BD</div></div><span class="pill p-mut">presentación</span></div>
+      <div class="arrow-d">▼</div>
+      <div class="layer" style="border-color:rgba(45,212,191,.5)"><div><b>Service</b><div class="mut" style="font-size:14px">reglas, transacciones · TriageService = reglas puras</div></div><span class="pill p-acc">dominio</span></div>
+      <div class="arrow-d">▼</div>
+      <div class="layer"><div><b>Entity + Repository</b><div class="mut" style="font-size:14px">TypeORM</div></div><span class="pill p-mut">persistencia</span></div>
+      <div class="arrow-d">▼</div>
+      <div class="layer" style="justify-content:center"><b>PostgreSQL</b></div>
+    </div>
+    <div class="col">
+      <h3 style="color:var(--acc)">¿Por qué driver?</h3>
+      <ul class="clean">
+        <li><b>E1</b>: caso + signos + triage en <b>una transacción local</b>. No existe un caso sin prioridad</li>
+        <li><b>E2</b>: un <code>UPDATE … WHERE assigned_to IS NULL</code> atómico, sin coordinación distribuida</li>
+        <li><b>E3</b>: las reglas viven en un solo módulo con un único punto de entrada</li>
+        <li><b>Restricción</b>: 3 personas, un despliegue, un comando</li>
+      </ul>
+      <div class="card" style="margin-top:16px"><p style="font-size:16px"><b>No es solo un dibujo:</b> <code>npm run test:arq</code> lee los <code>import</code> de todo <code>src/</code> y falla si un controller toca la BD, si hay un ciclo entre services o si alguien que no es <code>CasesService</code> llama a <code>TriageService</code> (reglas R1–R10).</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>ADR-001</span><span>7</span></div>
+</section>
+
+<!-- 8 · Alternativas y sacrificio -->
+<section class="slide">
+  <div class="kick">4 · Alternativas descartadas y lo que sacrificamos</div>
+  <h2>Lo que dejamos de lado, y por qué</h2>
+  <div class="row" style="gap:18px">
+    <div class="col">
+      <table class="card" style="padding:4px 6px">
+        <tr><th>Alternativa</th><th>Por qué no</th></tr>
+        <tr><td><b>Microservicios</b></td><td>Caso + triage pasarían a ser una transacción <b>distribuida</b> (saga) y E1 tendría ventanas sin prioridad. Ningún driver pide escalar por separado</td></tr>
+        <tr><td><b>Eventos</b><br><span class="mut" style="font-size:13px">CasoRegistrado → triage</span></td><td>El promotor necesita la prioridad <b>en la respuesta</b> para decidir si remite ya</td></tr>
+        <tr><td><b>Hexagonal pura</b></td><td>Duplica los modelos (dominio + ORM) sin un driver que lo pida. Tomamos solo la parte útil: el cálculo no usa BD ni HTTP</td></tr>
+      </table>
+    </div>
+    <div style="width:380px" class="card hl">
+      <span class="pill p-alta">Sacrificio</span>
+      <h3 style="margin-top:12px">Escalabilidad independiente</h3>
+      <p class="mut" style="font-size:15px">No podemos escalar solo la cola. Medido:</p>
+      <div style="margin:14px 0 6px;font-size:13px" class="mut">Cola · p99</div>
+      <div class="bar" style="width:12%;background:var(--baja);min-width:90px">177 ms · 1x</div>
+      <div class="bar" style="width:100%;background:var(--alta);margin-top:8px">1789 ms · 10x</div>
+      <p style="font-size:15px;margin-top:14px"><b>Aceptable hoy:</b> el volumen actual es de decenas de casos al día, y la primera mitigación (paginar e indexar) no exige cambiar de estilo.</p>
+    </div>
+  </div>
+  <div class="foot"><span>ADR-001</span><span>8</span></div>
+</section>
+
+<!-- 9 · Contextos -->
+<section class="slide">
+  <div class="kick">5 · Contextos delimitados</div>
+  <h2>Cinco fronteras, cada una con su señal</h2>
+  <div class="row" style="gap:14px;flex-wrap:wrap">
+    <div class="card hl" style="flex:1 1 30%"><span class="pill p-acc">triage/</span><h3 style="margin-top:10px">Triage clínico</h3><p class="mut" style="font-size:15px"><b style="color:var(--tx)">Señal:</b> otro ritmo de cambio y otro dueño. Cambia cuando el médico valida umbrales</p></div>
+    <div class="card hl" style="flex:1 1 30%"><span class="pill p-acc">cases/</span><h3 style="margin-top:10px">Atención de casos</h3><p class="mut" style="font-size:15px"><b style="color:var(--tx)">Señal:</b> ciclo de vida propio (máquina de estados) y concurrencia de la cola. El único que llama a Triage</p></div>
+    <div class="card" style="flex:1 1 30%"><span class="pill p-acc">patients/</span><h3 style="margin-top:10px">Registro de pacientes</h3><p class="mut" style="font-size:15px"><b style="color:var(--tx)">Señal:</b> vive años, un paciente tiene muchos casos. Su invariante es el documento único</p></div>
+    <div class="card" style="flex:1 1 30%"><span class="pill p-acc">attachments/</span><h3 style="margin-top:10px">Documentos clínicos</h3><p class="mut" style="font-size:15px"><b style="color:var(--tx)">Señal:</b> otra regulación (custodia de la HC) y otro almacenamiento (disco)</p></div>
+    <div class="card" style="flex:1 1 30%"><span class="pill p-acc">users/</span><h3 style="margin-top:10px">Identidad</h3><p class="mut" style="font-size:15px"><b style="color:var(--tx)">Señal:</b> todos la consumen. Es candidata a reemplazarse por JWT/OIDC</p></div>
+    <div class="card" style="flex:1 1 30%;border-style:dashed"><span class="pill p-mut">frontera imperfecta</span><h3 style="margin-top:10px">Lo que reconocemos</h3><p class="mut" style="font-size:15px">Las entidades se cruzan porque hay una sola BD (<code>TriageRecord → Case</code>). La prueba lo hace visible y prohíbe cruzar controllers</p></div>
+  </div>
+  <div class="foot"><span>DISENO.md §5</span><span>9</span></div>
+</section>
+
+<!-- 10 · Tácticas -->
+<section class="slide">
+  <div class="kick">6 · Tácticas aplicadas</div>
+  <h2>Qué táctica, contra qué escenario, y qué degrada</h2>
+  <table class="card" style="padding:4px 6px">
+    <tr><th>Táctica</th><th style="width:70px">Esc.</th><th>Qué degrada</th></tr>
+    <tr><td><b>Transacción local</b> al crear el caso</td><td><span class="pill p-alta">E1</span></td><td>Latencia: la conexión queda ocupada durante 3 escrituras</td></tr>
+    <tr><td><b>UPDATE condicional atómico</b> al asignar</td><td><span class="pill p-media">E2</span></td><td>Usabilidad: el segundo especialista recibe un 409</td></tr>
+    <tr><td><b>Validación en el borde</b> (rangos fisiológicos, whitelist)</td><td><span class="pill p-alta">E1</span></td><td>Flexibilidad: un valor extremo pero real se rechaza</td></tr>
+    <tr><td><b>Encapsular reglas</b> con un único punto de entrada (R9/R10)</td><td><span class="pill p-baja">E3</span></td><td>Cada cambio de umbral exige redesplegar; <code>TriageService</code> crece</td></tr>
+    <tr><td><b>Desnormalizar</b> la prioridad en <code>Case</code></td><td><span class="pill p-mut">E4</span></td><td>Consistencia: dos copias y doble escritura</td></tr>
+    <tr><td><b>Health check + degradación parcial</b></td><td><span class="pill p-mut">E5</span></td><td>Cada <code>/health</code> consulta la BD</td></tr>
+    <tr><td><b>Lista blanca + escritura diferida</b> de adjuntos</td><td><span class="pill p-mut">E6</span></td><td>RAM durante la validación; no se acepta DICOM</td></tr>
+  </table>
+  <div class="foot"><span>DISENO.md §6</span><span>10</span></div>
+</section>
+
+<!-- 11 · C4 Nivel 1 -->
+<section class="slide">
+  <div class="kick">7 · C4 · Nivel 1 — Contexto</div>
+  <h2 style="margin-bottom:6px">¿Quién usa el sistema y con qué se relaciona?</h2>
+  <div class="c4" style="flex:1">
+    <svg class="wires" viewBox="0 0 1136 470" preserveAspectRatio="none">
+      <defs><marker id="ar" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#7dd3fc"/></marker>
+      <marker id="ar2" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9aa3b3"/></marker></defs>
+      <line x1="200" y1="105" x2="430" y2="215" stroke="#7dd3fc" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="190" y="175">Registra pacientes, casos, signos y adjuntos</text><text x="245" y="192">[HTTPS/JSON]</text>
+      <line x1="568" y1="95" x2="568" y2="205" stroke="#7dd3fc" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="582" y="140">Consulta la cola, toma casos, registra la conducta</text><text x="582" y="157">[HTTPS/JSON]</text>
+      <line x1="940" y1="105" x2="710" y2="215" stroke="#7dd3fc" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="830" y="182">Gestiona usuarios [HTTPS/JSON]</text>
+      <path d="M640,60 C900,40 1000,250 960,330" fill="none" stroke="#9aa3b3" stroke-width="2" stroke-dasharray="7 6" marker-end="url(#ar2)"/>
+      <text x="945" y="250">Deriva al paciente</text><text x="945" y="267">[manual: teléfono / remisión]</text>
+    </svg>
+    <div class="box per" style="left:40px;top:20px;width:220px"><b>Promotor de salud</b><i>[Persona]</i>Visita veredas y toma signos</div>
+    <div class="box per" style="left:458px;top:10px;width:220px"><b>Especialista</b><i>[Persona]</i>Revisa casos de forma asíncrona</div>
+    <div class="box per" style="left:880px;top:20px;width:220px"><b>Administrador</b><i>[Persona]</i>Gestiona usuarios</div>
+    <div class="box sys" style="left:388px;top:210px;width:360px;padding:18px"><b style="font-size:19px">Sistema de Triage y Priorización</b><i>[Sistema de software]</i>Registra casos, calcula la prioridad (NEWS2 + HTA + DM) y ordena la bandeja</div>
+    <div class="box ext" style="left:850px;top:340px;width:250px"><b>IPS de referencia / Urgencias</b><i>[Sistema externo]</i>Recibe pacientes derivados</div>
+  </div>
+  <div class="legend"><span><span class="sw" style="background:#08427b"></span>Persona</span><span><span class="sw" style="background:#1168bd"></span>Nuestro sistema</span><span><span class="sw" style="background:#5b6475"></span>Externo</span><span>→ síncrona [protocolo]</span><span>⇢ manual / fuera del sistema</span></div>
+  <div class="foot"><span>DISENO.md §7</span><span>11</span></div>
+</section>
+
+<!-- 12 · C4 Nivel 2 -->
+<section class="slide">
+  <div class="kick">7 · C4 · Nivel 2 — Contenedores</div>
+  <h2 style="margin-bottom:6px">Qué procesos y almacenes hay adentro</h2>
+  <div class="c4" style="flex:1">
+    <div class="bound" style="left:150px;top:22px;width:976px;height:440px"><span>Sistema de Triage y Priorización</span></div>
+    <svg class="wires" viewBox="0 0 1136 470" preserveAspectRatio="none">
+      <defs><marker id="b" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#7dd3fc"/></marker></defs>
+      <line x1="120" y1="120" x2="225" y2="120" stroke="#7dd3fc" stroke-width="2" marker-end="url(#b)"/>
+      <text x="125" y="108">Usa [HTTPS]</text>
+      <line x1="445" y1="120" x2="575" y2="200" stroke="#7dd3fc" stroke-width="2" marker-end="url(#b)"/>
+      <text x="400" y="185">/api/v1/* [HTTPS/JSON,</text><text x="410" y="201">multipart para archivos]</text>
+      <line x1="890" y1="110" x2="830" y2="190" stroke="#7dd3fc" stroke-width="2" marker-end="url(#b)"/>
+      <text x="880" y="160">Llama [HTTP/JSON]</text>
+      <line x1="620" y1="300" x2="430" y2="370" stroke="#7dd3fc" stroke-width="2" marker-end="url(#b)"/>
+      <text x="250" y="290">Lee y escribe · transacción al crear</text><text x="250" y="306">UPDATE condicional al asignar</text><text x="250" y="322">[SQL/TCP 5432 · TypeORM]</text>
+      <line x1="800" y1="300" x2="880" y2="365" stroke="#7dd3fc" stroke-width="2" marker-end="url(#b)"/>
+      <text x="855" y="318">Escribe el archivo validado (UUID)</text><text x="855" y="334">y lo transmite [fs]</text>
+    </svg>
+    <div class="box per" style="left:0;top:80px;width:120px"><b>Promotor / Especialista</b><i>[Persona]</i></div>
+    <div class="box ext" style="left:228px;top:70px;width:215px"><b>App web / móvil</b><i>[SPA · planeada]</i>Formularios y bandeja</div>
+    <div class="box sys" style="left:540px;top:195px;width:330px;padding:16px"><b style="font-size:18px">API de Triage</b><i>[NestJS 12 · Node 22]</i>Monolito modular en capas<br><span style="font-size:12.5px;opacity:.9">users · patients · cases · triage · attachments · health</span></div>
+    <div class="box sys" style="left:880px;top:50px;width:200px"><b>Swagger UI</b><i>[@nestjs/swagger]</i>/api/docs</div>
+    <div class="box sys db" style="left:210px;top:365px;width:240px"><b>PostgreSQL 16</b><i>[Contenedor Docker]</i>casos, signos, historial</div>
+    <div class="box sys db" style="left:840px;top:362px;width:240px"><b>Almacén de adjuntos</b><i>[Sistema de archivos /uploads]</i>ECG, fotos, PDF</div>
+  </div>
+  <div class="legend"><span><span class="sw" style="background:#1168bd"></span>Contenedor (en el esqueleto)</span><span><span class="sw" style="background:#5b6475"></span>Planeado</span><span>Cilindro = almacén</span><span>Etiqueta = qué hace [protocolo]</span><span style="color:var(--acc)">Coincide con <code>docker compose ps</code></span></div>
+  <div class="foot"><span>DISENO.md §7</span><span>12</span></div>
+</section>
+
+<!-- 13 · ADR -->
+<section class="slide">
+  <div class="kick">8 · Decisiones de arquitectura</div>
+  <h2>Tres ADR: contexto, decisión, alternativas y consecuencias</h2>
+  <div class="row" style="gap:16px">
+    <div class="card col"><span class="pill p-acc">ADR-001</span><h3 style="margin-top:12px">Monolito modular en capas</h3>
+      <p class="mut" style="font-size:14px;margin:6px 0 10px"><b style="color:var(--tx)">Descartadas:</b> microservicios, eventos, hexagonal pura</p>
+      <p style="font-size:15px"><span style="color:var(--baja)">＋</span> transacciones y UPDATE atómicos locales</p>
+      <p style="font-size:15px"><span style="color:var(--alta)">－</span> la cola no escala sola (p99 1789 ms a 10x)</p></div>
+    <div class="card col"><span class="pill p-acc">ADR-002</span><h3 style="margin-top:12px">Triage síncrono y transaccional</h3>
+      <p class="mut" style="font-size:14px;margin:6px 0 10px"><b style="color:var(--tx)">Descartadas:</b> cola de mensajes, cálculo en el cliente, "arreglar después"</p>
+      <p style="font-size:15px"><span style="color:var(--baja)">＋</span> nunca existe un caso sin prioridad</p>
+      <p style="font-size:15px"><span style="color:var(--alta)">－</span> registro más lento (p99 1541 ms a 10x), acoplamiento con el EntityManager</p></div>
+    <div class="card col"><span class="pill p-acc">ADR-003</span><h3 style="margin-top:12px">Reglas clínicas en código</h3>
+      <p class="mut" style="font-size:14px;margin:6px 0 10px"><b style="color:var(--tx)">Descartadas:</b> tabla en BD, motor de reglas, servicio externo</p>
+      <p style="font-size:15px"><span style="color:var(--baja)">＋</span> cada umbral probado en su frontera</p>
+      <p style="font-size:15px"><span style="color:var(--alta)">－</span> el médico no ajusta solo: requiere un desarrollador y redespliegue</p></div>
+  </div>
+  <div class="card" style="margin-top:18px"><p style="font-size:16px"><b>Hallazgo honesto:</b> al documentar ADR-002 descubrimos que la primera versión <b>no era atómica</b> y que la asignación tenía <b>condición de carrera</b>. Las dos están corregidas y probadas.</p></div>
+  <div class="foot"><span>docs/adr/</span><span>13</span></div>
+</section>
+
+<!-- 14 · Esqueleto -->
+<section class="slide">
+  <div class="kick">Entregable 2 · Walking skeleton</div>
+  <h2>Corre con un comando y demuestra la estructura</h2>
+  <div class="row" style="gap:20px">
+    <div class="col">
+      <pre class="code"><span style="color:#64748b"># Postgres en Docker + API</span>
+npm run levantar
+
+<span style="color:#64748b"># demo en vivo: usuarios, casos, cola</span>
+npm run demo
+
+<span style="color:#64748b"># capas separadas, sin atajos (R1–R10)</span>
+npm run test:arq
+
+<span style="color:#64748b"># de punta a punta contra PostgreSQL</span>
+npm run test:e2e</pre>
+      <p class="mut" style="font-size:15px;margin-top:10px">Swagger: <code>localhost:3000/api/docs</code> · Health: <code>/api/v1/health</code></p>
+    </div>
+    <div class="col">
+      <table class="card" style="padding:4px 6px">
+        <tr><th>Prueba</th><th>Resultado</th></tr>
+        <tr><td>Unitarias (reglas clínicas)</td><td><span class="pill p-baja">12 / 12</span></td></tr>
+        <tr><td>Arquitectura (capas)</td><td><span class="pill p-baja">7 / 7</span></td></tr>
+        <tr><td>Punta a punta + concurrencia</td><td><span class="pill p-baja">28 / 28</span></td></tr>
+        <tr><td>Carga 1x (límites)</td><td><span class="pill p-baja">3 / 3</span></td></tr>
+        <tr><td>Disponibilidad (BD caída)</td><td><span class="pill p-baja">8 / 8</span></td></tr>
+      </table>
+      <p class="mut" style="font-size:14px;margin-top:10px">Una petición HTTP atraviesa Controller → Service → Entity → PostgreSQL y vuelve con la prioridad calculada.</p>
+    </div>
+  </div>
+  <div class="foot"><span>README · evidencias/REPORTE.md</span><span>14</span></div>
+</section>
+
+<!-- 15 · Riesgos -->
+<section class="slide">
+  <div class="kick">9 · Riesgos identificados</div>
+  <h2>Qué podría salir mal, y cómo lo verificaríamos</h2>
+  <table class="card" style="padding:4px 6px">
+    <tr><th style="width:28%">Riesgo</th><th>Cómo se verifica / descarta</th><th style="width:150px">Estado</th></tr>
+    <tr><td><b>R1</b> Doble asignación por condición de carrera</td><td>Asignaciones paralelas en la e2e. Con el código anterior daba <code>[200, 200]</code></td><td><span class="pill p-baja">mitigado</span></td></tr>
+    <tr><td><b>R2</b> La cola no escala (sin paginación ni índice)</td><td><code>test:carga</code> con <code>?limit=50</code> + índice compuesto → p99 &lt; 500 ms con 1000 casos</td><td><span class="pill p-media">abierto</span></td></tr>
+    <tr><td><b>R3</b> Sin autenticación: se puede suplantar el <code>specialistId</code></td><td>Tomar un caso a nombre de otro debe dar 401/403 (hoy da 200). Plan: JWT + RolesGuard</td><td><span class="pill p-alta">abierto</span></td></tr>
+    <tr><td><b>R4</b> Falsos negativos en síntomas por palabra clave</td><td>Corpus de ≥100 notas reales etiquetadas por el médico; sensibilidad ≥ 95 %</td><td><span class="pill p-media">abierto</span></td></tr>
+    <tr><td><b>R5</b> <code>synchronize: true</code> borra columnas</td><td>Migrar a migraciones de TypeORM y renombrar una columna con datos</td><td><span class="pill p-mut">solo en desarrollo</span></td></tr>
+  </table>
+  <div class="foot"><span>DISENO.md §8</span><span>15</span></div>
+</section>
+
+<!-- 16 · 10x -->
+<section class="slide">
+  <div class="kick">Si el negocio creciera diez veces…</div>
+  <h2>Lo primero que se rompe: <span style="color:#fb7185">la cola del especialista</span></h2>
+  <div class="row" style="gap:28px;align-items:flex-start">
+    <div class="col">
+      <p class="mut" style="font-size:14px;margin-bottom:6px">p99 · 1x frente a 10x · límite 500 ms (medido)</p>
+      <div style="margin:14px 0 4px;font-size:15px"><b>Cola</b> · 100 → 1000 casos <span class="pill p-alta" style="font-size:11px">×10,1</span></div>
+      <div class="bar" style="width:9.9%;background:var(--baja);min-width:70px">177</div>
+      <div class="bar" style="width:100%;background:var(--alta);margin-top:5px">1789 ms</div>
+      <div style="margin:16px 0 4px;font-size:15px"><b>Registro</b> · 10 → 100 promotores <span class="pill p-media" style="font-size:11px">×6,7</span></div>
+      <div class="bar" style="width:12.9%;background:var(--baja);min-width:70px">231</div>
+      <div class="bar" style="width:86%;background:var(--media);margin-top:5px">1541 ms</div>
+      <div style="margin:16px 0 4px;font-size:15px"><b>Evaluación</b> · 10 → 100 usuarios <span class="pill p-baja" style="font-size:11px">×4,8</span></div>
+      <div class="bar" style="width:2%;background:var(--baja);min-width:70px">32</div>
+      <div class="bar" style="width:8.6%;background:var(--baja);margin-top:5px;min-width:70px">154</div>
+    </div>
+    <div style="width:420px" class="card hl">
+      <h3>¿Por qué?</h3>
+      <p class="mut" style="font-size:15px">Devuelve <b style="color:var(--tx)">todos</b> los casos abiertos con sus relaciones (1,2 MB con 1000) y los ordena sin índice. Crece de forma lineal.</p>
+      <h3 style="margin-top:14px">Qué haríamos, en orden</h3>
+      <ul class="clean">
+        <li>Paginación + índice <code style="font-size:12px">(status, priority, news2, created_at)</code></li>
+        <li>Más conexiones en el pool y réplica de lectura para la cola</li>
+        <li>Solo entonces: extraer la cola o el triage, revisando ADR-001 y ADR-002</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>npm run test:carga</span><span>16</span></div>
+</section>
+
+<!-- 17 · Cierre -->
+<section class="slide">
+  <div style="margin:auto 0">
+    <div class="kick">Gracias</div>
+    <h1 style="font-size:56px">Cada decisión se rastrea<br>hasta <span class="grad">un driver</span>, y cada driver<br>hasta <span class="grad">una medida</span>.</h1>
+    <div class="row" style="margin-top:34px;gap:14px">
+      <span class="pill p-acc" style="font-size:15px;padding:6px 14px">github.com/SamuelSalcedo22/triage-api</span>
+      <span class="pill p-mut" style="font-size:15px;padding:6px 14px">docs/DISENO.md · docs/adr/</span>
+    </div>
+  </div>
+  <div class="foot"><span>¿Preguntas?</span><span>17</span></div>
+</section>
+
+</div>
+<div id="nav"><button onclick="go(-1)" aria-label="Anterior">‹</button><button onclick="go(1)" aria-label="Siguiente">›</button><button onclick="fs()" aria-label="Pantalla completa">⛶</button></div>
+<div class="hint">← → navegar · F pantalla completa</div>
+<script>
+const S=[...document.querySelectorAll('.slide')];let i=0;
+function show(n){i=Math.max(0,Math.min(S.length-1,n));S.forEach((s,k)=>s.classList.toggle('on',k===i));
+  document.getElementById('prog').style.width=((i+1)/S.length*100)+'%';try{history.replaceState(null,'','#'+(i+1))}catch(e){}}
+function go(d){show(i+d)}
+function fs(){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}
+function fit(){const k=Math.min(innerWidth/1280,innerHeight/720);document.getElementById('stage').style.transform=`translate(-50%,-50%) scale(${k})`}
+addEventListener('resize',fit);
+addEventListener('keydown',e=>{if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();go(1)}
+  else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();go(-1)}
+  else if(e.key==='Home')show(0);else if(e.key==='End')show(S.length-1);else if(e.key.toLowerCase()==='f')fs()});
+let tx=null;addEventListener('touchstart',e=>tx=e.touches[0].clientX);addEventListener('touchend',e=>{if(tx==null)return;const d=e.changedTouches[0].clientX-tx;if(Math.abs(d)>50)go(d<0?1:-1);tx=null});
+fit();show((parseInt(location.hash.slice(1))||1)-1);
+</script>
+</body>
+</html>
