@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { Case } from '../cases/entities/case.entity';
 import { VitalSigns } from '../cases/entities/vital-signs.entity';
 import { CreateVitalSignsDto } from '../cases/dto/vital-signs.dto';
@@ -228,15 +228,21 @@ export class TriageService {
   // =====================================================================
 
   /** Calcula el triage de un caso, guarda el registro y actualiza la prioridad del caso */
-  async evaluateAndSave(caseEntity: Case, vitals: VitalSigns) {
+  /**
+   * Si se pasa `manager`, las escrituras van dentro de la transacción de quien llama
+   * (así crear caso + signos + triage es todo o nada).
+   */
+  async evaluateAndSave(caseEntity: Case, vitals: VitalSigns, manager?: EntityManager) {
+    const triageRepository = manager ? manager.getRepository(TriageRecord) : this.triageRepository;
+    const caseRepository = manager ? manager.getRepository(Case) : this.caseRepository;
     const result = this.calculateRisk({
       vitals,
       symptoms: caseEntity.symptoms,
       patient: this.toProfile(caseEntity.patient),
     });
 
-    const record = await this.triageRepository.save(
-      this.triageRepository.create({
+    const record = await triageRepository.save(
+      triageRepository.create({
         ...result,
         case: { id: caseEntity.id },
         vitalSigns: { id: vitals.id },
@@ -246,7 +252,7 @@ export class TriageService {
     caseEntity.priority = result.priority;
     caseEntity.news2Score = result.news2Score;
     caseEntity.alerts = result.alerts;
-    await this.caseRepository.update(caseEntity.id, {
+    await caseRepository.update(caseEntity.id, {
       priority: result.priority,
       news2Score: result.news2Score,
       alerts: result.alerts as never,

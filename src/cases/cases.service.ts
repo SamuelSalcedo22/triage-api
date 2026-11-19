@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, Repository } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, FindOptionsWhere, IsNull, Repository } from 'typeorm';
 import { CASE_STATUS_TRANSITIONS, CaseStatus, Role } from '../common/enums';
 import { PatientsService } from '../patients/patients.service';
 import { TriageService } from '../triage/triage.service';
@@ -20,6 +20,7 @@ export class CasesService {
     private readonly patientsService: PatientsService,
     private readonly usersService: UsersService,
     private readonly triageService: TriageService,
+    @InjectDataSource() private readonly dataSource: DataSource,
   ) {}
 
   /**
@@ -31,18 +32,18 @@ export class CasesService {
     const promoter = await this.usersService.findWithRole(dto.createdById, [Role.PROMOTOR, Role.ADMIN]);
 
     const { vitalSigns, ...caseData } = dto;
-    const newCase = await this.caseRepository.save(
-      this.caseRepository.create({
-        ...caseData,
-        patient,
-        createdBy: promoter,
-      }),
-    );
-    const vitals = await this.vitalSignsRepository.save(this.vitalSignsRepository.create({ ...vitalSigns, case: { id: newCase.id } }));
 
-    // Triage automático
-    newCase.patient = patient;
-    const { result } = await this.triageService.evaluateAndSave(newCase, vitals);
+    // ADR-002: caso + signos + triage en UNA transacción. Si algo falla no queda
+    // un caso guardado sin prioridad (aparecería en la cola como BAJA por defecto).
+    const { newCase, result } = await this.dataSource.transaction(async (manager) => {
+      const caseRepo = manager.getRepository(Case);
+      const vitalsRepo = manager.getRepository(VitalSigns);
+      const saved = await caseRepo.save(caseRepo.create({ ...caseData, patient, createdBy: promoter }));
+      const vitals = await vitalsRepo.save(vitalsRepo.create({ ...vitalSigns, case: { id: saved.id } }));
+      saved.patient = patient;
+      const { result } = await this.triageService.evaluateAndSave(saved, vitals, manager);
+      return { newCase: saved, result };
+    });
 
     return {
       message: `Caso creado con prioridad ${result.priority}`,
@@ -113,11 +114,18 @@ export class CasesService {
       throw new BadRequestException(`Solo se pueden tomar casos PENDIENTE (estado actual: ${caseEntity.status})`);
     }
 
-    await this.caseRepository.update(id, {
-      assignedTo: { id: specialist.id },
-      status: CaseStatus.EN_REVISION,
-      assignedAt: new Date(),
-    });
+    // Táctica de concurrencia: UPDATE condicional (atómico en PostgreSQL).
+    // Solo actualiza si el caso SIGUE pendiente y sin dueño; si dos especialistas
+    // llegan al mismo tiempo, uno afecta 1 fila y el otro 0 filas → 409.
+    if (caseEntity.assignedTo?.id !== specialist.id) {
+      const { affected } = await this.caseRepository.update(
+        { id, status: CaseStatus.PENDIENTE, assignedTo: IsNull() },
+        { assignedTo: { id: specialist.id }, status: CaseStatus.EN_REVISION, assignedAt: new Date() },
+      );
+      if (!affected) {
+        throw new ConflictException(`El caso ${id} acaba de ser tomado por otro especialista`);
+      }
+    }
     return {
       message: `Caso ${id} asignado a ${specialist.fullName}`,
       data: await this.findOne(id),
