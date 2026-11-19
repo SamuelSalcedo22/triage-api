@@ -7,6 +7,17 @@ y **diabetes**, y ordena la bandeja del médico especialista por prioridad **ALT
 > ⚠️ Es una herramienta de apoyo a la decisión clínica: **no reemplaza el criterio médico**.
 > Los umbrales deben ser validados por el médico asesor del proyecto.
 
+## Entregables de la sustentación
+
+| Entregable | Dónde |
+|---|---|
+| **1 · Diseño documentado**: drivers y árbol de utilidad, escenarios, estilo, contextos, tácticas, C4 nivel 1 y 2, riesgos | [docs/DISENO.md](docs/DISENO.md) |
+| **1 · Tres ADR** | [docs/adr/](docs/adr/) |
+| **2 · Esqueleto funcional**: arranca con `npm run levantar` (instrucciones abajo) | este README, sección "Arranque rápido" |
+| Evidencia de que el esqueleto corresponde al diseño | `npm run test:arq` · `npm run test:e2e` · [evidencias/REPORTE.md](evidencias/REPORTE.md) |
+| Diapositivas (abrir en el navegador, avanzar con las flechas ← →) | [docs/sustentacion/diapositivas.html](docs/sustentacion/diapositivas.html) |
+| Guía de defensa (las 4 preguntas) | [docs/DEFENSA.md](docs/DEFENSA.md) |
+
 ---
 
 ## 1. Requisitos
