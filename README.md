@@ -79,6 +79,16 @@ ya está lista. Las tablas se crean solas (`synchronize: true`). El modo `start:
 Abre **http://localhost:3000/api/docs**, despliega un endpoint, pulsa **Try it out**, edita el JSON y **Execute**.
 Todos los DTOs traen ejemplos realistas ya llenos.
 
+### Paso 5b – Probar con Postman
+
+1. En Postman: **Import** → selecciona `postman/triage-api.postman_collection.json`.
+2. Ejecuta las carpetas **en orden** (1. Usuarios → 7. Validaciones). Cada petición guarda sola los IDs
+   que necesitan las siguientes (`promotorId`, `patientId`, `caseId`…), en las variables de la colección.
+3. En *6. Adjuntos → Subir ECG / foto*, pestaña **Body**, elige un archivo JPG, PNG o PDF en el campo `file`.
+4. Para empezar de cero: `docker compose down -v`, `docker compose up -d` y vuelve a arrancar la API.
+
+Las peticiones de error (409, 400, 404) traen un test que comprueba el código de respuesta.
+
 ### Paso 6 – Correr las pruebas unitarias
 
 ```bash
@@ -145,11 +155,14 @@ Prefijo de todas las rutas: `/api/v1`
 | GET | `/users?role=ESPECIALISTA` | Listar (filtro opcional por rol) |
 | GET | `/users/:id` | Detalle |
 | PATCH | `/users/:id` | Editar / desactivar (`isActive: false`) |
+| DELETE | `/users/:id` | Eliminar (solo si no tiene casos; si tiene → 409, se desactiva con PATCH) |
 | **Patients** |||
 | POST | `/patients` | Crear paciente (documento único) |
 | GET | `/patients?search=Burbano` | Listar / buscar por nombre o documento |
 | GET | `/patients/:id` | Detalle (incluye edad calculada) |
-| PATCH | `/patients/:id` | Editar datos y antecedentes |
+| PATCH | `/patients/:id` | Actualización **parcial**: solo cambia los campos enviados |
+| PUT | `/patients/:id` | Reemplazo **completo**: los campos opcionales no enviados vuelven a su valor por defecto |
+| DELETE | `/patients/:id` | Eliminar (solo si no tiene casos; si tiene → 409) |
 | GET | `/patients/:id/cases` | Historial de casos |
 | **Cases** |||
 | POST | `/cases` | Crear caso + signos vitales → **triage automático** |
