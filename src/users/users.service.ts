@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Role } from '../common/enums';
 import { CreateUserDto, UpdateUserDto, UsersQueryDto } from './dto/user.dto';
 import { User } from './entities/user.entity';
+import { Case } from '../cases/entities/case.entity';
 
 @Injectable()
 export class UsersService {
@@ -36,6 +37,19 @@ export class UsersService {
     const user = await this.findOne(id);
     const updated = await this.userRepository.save(this.userRepository.merge(user, dto));
     return { message: 'Usuario actualizado con éxito', data: updated };
+  }
+
+  /** DELETE: si el usuario ya registró o atendió casos, no se borra para no perder la trazabilidad */
+  async delete(id: number) {
+    const user = await this.findOne(id);
+    const related = await this.userRepository.manager.count(Case, {
+      where: [{ createdBy: { id } }, { assignedTo: { id } }],
+    });
+    if (related > 0) {
+      throw new ConflictException(`No se puede eliminar a ${user.fullName}: tiene ${related} caso(s) asociados. Desactívalo con PATCH { "isActive": false }`);
+    }
+    await this.userRepository.delete(id);
+    return { message: 'Usuario eliminado con éxito' };
   }
 
   /** Busca un usuario o lanza 404 (lo usan otros módulos) */

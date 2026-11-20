@@ -60,6 +60,55 @@ export class PatientsService {
     };
   }
 
+  /**
+   * PUT: reemplazo COMPLETO del paciente.
+   * A diferencia de PATCH, los campos opcionales que no se envían
+   * vuelven a su valor por defecto (null, false, 'Pasto', 'Nariño').
+   */
+  async replacePatient(id: number, dto: CreatePatientDto) {
+    this.validateBirthDate(dto.birthDate);
+    const patient = await this.findOne(id);
+
+    const duplicate = await this.patientRepository.findOne({
+      where: { documentType: dto.documentType, documentNumber: dto.documentNumber },
+    });
+    if (duplicate && duplicate.id !== id) {
+      throw new ConflictException(`Ya existe otro paciente con ${dto.documentType} ${dto.documentNumber} (ID ${duplicate.id})`);
+    }
+
+    const replaced = this.patientRepository.merge(patient, {
+      ...dto,
+      phone: dto.phone ?? null,
+      address: dto.address ?? null,
+      locality: dto.locality ?? null,
+      municipality: dto.municipality ?? 'Pasto',
+      department: dto.department ?? 'Nariño',
+      hasHypertension: dto.hasHypertension ?? false,
+      hasDiabetes: dto.hasDiabetes ?? false,
+      hasHypercapnicRespiratoryFailure: dto.hasHypercapnicRespiratoryFailure ?? false,
+      isPregnant: dto.isPregnant ?? false,
+      otherConditions: dto.otherConditions ?? null,
+      allergies: dto.allergies ?? null,
+      currentMedications: dto.currentMedications ?? null,
+    });
+    await this.patientRepository.save(replaced);
+    return {
+      message: 'Paciente reemplazado con éxito',
+      data: await this.findOne(id),
+    };
+  }
+
+  /** DELETE: solo se elimina si el paciente no tiene casos (no se pierde historia clínica) */
+  async deletePatient(id: number) {
+    const patient = await this.findOne(id);
+    const casesCount = await this.caseRepository.count({ where: { patient: { id } } });
+    if (casesCount > 0) {
+      throw new ConflictException(`No se puede eliminar a ${patient.firstName} ${patient.lastName}: tiene ${casesCount} caso(s) registrados`);
+    }
+    await this.patientRepository.delete(id);
+    return { message: 'Paciente eliminado con éxito' };
+  }
+
   /** Historial de casos del paciente (más recientes primero) */
   async getPatientCases(id: number) {
     await this.findOne(id);
