@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CreatePatientDto, PatientsQueryDto, UpdatePatientDto } from './dto/patient.dto';
 import { PatientsService } from './patients.service';
@@ -30,6 +30,18 @@ export class PatientsController {
   @ApiOperation({ summary: 'Actualizar datos o antecedentes del paciente' })
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdatePatientDto) {
     return this.patientsService.updatePatient(id, dto);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Reemplazar todos los datos del paciente (lo no enviado vuelve a su valor por defecto)' })
+  replace(@Param('id', ParseIntPipe) id: number, @Body() dto: CreatePatientDto) {
+    return this.patientsService.replacePatient(id, dto);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Eliminar paciente (solo si no tiene casos)' })
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.patientsService.deletePatient(id);
   }
 
   @Get(':id/cases')
